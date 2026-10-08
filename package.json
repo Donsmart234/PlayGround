@@ -1,0 +1,43 @@
+{
+  "name": "playground",
+  "version": "1.0.0",
+  "description": "<!-- omgithub:readme:start --> ## 🚀 Build, play, and remix with OMGithub",
+  "main": "index.js",
+  "scripts": {
+    "dev": "next dev",
+    "build": "next build",
+    "start": "next start",
+    "lint": "next lint"
+  },
+  "repository": {
+    "type": "git",
+    "url": "git+https://github.com/Donsmart234/PlayGround.git"
+  },
+  "keywords": [],
+  "author": "",
+  "license": "ISC",
+  "bugs": {
+    "url": "https://github.com/Donsmart234/PlayGround/issues"
+  },
+  "homepage": "https://github.com/Donsmart234/PlayGround#readme",
+  "dependencies": {
+    "@privy-io/react-auth": "^1.91.0",
+    "clsx": "^2.1.1",
+    "framer-motion": "^11.18.2",
+    "next": "^14.2.5",
+    "qrcode.react": "^3.2.0",
+    "react": "^18.3.1",
+    "react-dom": "^18.3.1",
+    "tailwind-merge": "^2.6.1"
+  },
+  "devDependencies": {
+    "@types/node": "^20.19.43",
+    "@types/react": "^18.3.31",
+    "autoprefixer": "^10.6.1",
+    "eslint": "^8.57.1",
+    "eslint-config-next": "^14.2.5",
+    "postcss": "^8.5.29",
+    "tailwindcss": "^3.4.10",
+    "typescript": "^5.9.3"
+  }
+}
