@@ -9,13 +9,6 @@ const MISSING_KEY_MSG =
 export const hasPrivyAppId = () =>
   !!process.env.NEXT_PUBLIC_PRIVY_APP_ID;
 
-/**
- * Google direct login stays DISABLED until the Privy flow is approved.
- * Set NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN=true to enable it.
- */
-export const isGoogleLoginEnabled = () =>
-  process.env.NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN === "true";
-
 export function missingPrivyAlert() {
   alert(MISSING_KEY_MSG);
 }

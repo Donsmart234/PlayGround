@@ -1,15 +1,22 @@
 import type { Metadata } from "next";
-import { Inter } from "next/font/google";
+import { Inter, Sora } from "next/font/google";
 import "./globals.css";
 import Providers from "./providers";
 
-// Self-hosted custom font (downloaded at build time — no runtime
-// dependency on Google Fonts or device fonts). Two weights only,
-// per the type system: 400 body / 600 headlines.
+// Body: Inter (neutral, readable). Headings: Sora — a distinctive geometric
+// display face so headlines stop looking like default system type.
+// Both self-hosted at build time (no runtime Google-Fonts/device-font dep).
 const inter = Inter({
   subsets: ["latin"],
   weight: ["400", "600"],
   variable: "--font-inter",
+  display: "swap",
+});
+
+const display = Sora({
+  subsets: ["latin"],
+  weight: ["600", "700"],
+  variable: "--font-display",
   display: "swap",
 });
 
@@ -25,7 +32,7 @@ export default function RootLayout({
   children: React.ReactNode;
 }) {
   return (
-    <html lang="en" className={inter.variable}>
+    <html lang="en" className={`${inter.variable} ${display.variable}`}>
       <body className="min-h-screen bg-white font-sans text-zinc-900">
         <Providers>{children}</Providers>
       </body>

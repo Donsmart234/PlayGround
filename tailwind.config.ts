@@ -35,6 +35,13 @@ const config: Config = {
           "Roboto",
           "sans-serif",
         ],
+        display: [
+          "var(--font-display)",
+          "var(--font-inter)",
+          "ui-sans-serif",
+          "system-ui",
+          "sans-serif",
+        ],
       },
     },
   },

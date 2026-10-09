@@ -3,11 +3,7 @@
 import { useRouter } from "next/navigation";
 import { useLogin, usePrivy } from "@privy-io/react-auth";
 import GradientButton from "@/components/ui/GradientButton";
-import {
-  hasPrivyAppId,
-  isGoogleLoginEnabled,
-  missingPrivyAlert,
-} from "@/lib/privy-safe";
+import { hasPrivyAppId, missingPrivyAlert } from "@/lib/privy-safe";
 
 function GoogleIcon() {
   return (
@@ -27,34 +23,13 @@ type Props = {
 
 /**
  * BUTTON 1 — "Continue with Google".
- * PARKED: renders disabled with a "Soon" badge until the Privy flow is
- * approved and NEXT_PUBLIC_ENABLE_GOOGLE_LOGIN=true is set.
- * When enabled: calls Privy's Google OAuth directly, creates an embedded
- * EVM wallet automatically, then routes to /connect-wallet.
+ * Calls Privy's Google OAuth directly, creates an embedded EVM wallet
+ * automatically (createOnLogin: all-users), then routes to /connect-wallet.
  */
 export default function GoogleLoginButton({
   label = "Continue with Google",
   className,
 }: Props) {
-  // Parked until approved — no login() wiring executes in this state.
-  if (!isGoogleLoginEnabled()) {
-    return (
-      <GradientButton
-        disabled
-        className={className}
-        aria-label={`${label} (coming soon)`}
-        title="Google login unlocks after the Privy flow is approved"
-      >
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
-          <GoogleIcon />
-        </span>
-        {label}
-        <span className="rounded-full bg-pink-500/10 px-2 py-0.5 text-[11px] font-semibold text-pink-600">
-          Soon
-        </span>
-      </GradientButton>
-    );
-  }
   // No Privy App ID (or SSR prerender): render a static button that explains
   // setup — useLogin() is never called without a PrivyProvider ancestor.
   if (!hasPrivyAppId()) {

@@ -23,6 +23,19 @@ body {
   overflow-x: hidden;
 }
 
+/* Headings always render in the display face — never fallback body type. */
+h1,
+h2,
+h3 {
+  font-family:
+    var(--font-display),
+    var(--font-inter),
+    ui-sans-serif,
+    system-ui,
+    sans-serif;
+  letter-spacing: -0.02em;
+}
+
 ::selection {
   background: rgba(236, 72, 153, 0.25);
 }
