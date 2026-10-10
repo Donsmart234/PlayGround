@@ -14,7 +14,7 @@ export default function GlassCard({
   return (
     <div
       className={cn(
-        "rounded-3xl shadow-glass",
+        "rounded-[28px] shadow-glass",
         strong ? "glass-strong" : "glass",
         className
       )}

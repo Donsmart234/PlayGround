@@ -7,8 +7,8 @@ type OrbBackgroundProps = {
 };
 
 /**
- * Soft pink organic washes floating behind content.
- * Absolutely positioned, z-index -1. Blur is reduced on mobile via `.orb`.
+ * The $100M mesh gradient from the mockup: pink / lavender / peach blobs,
+ * heavy blur, slow float. Reduced on mobile for performance.
  */
 export default function OrbBackground({
   className,
@@ -23,28 +23,31 @@ export default function OrbBackground({
       )}
     >
       <div
-        className="orb orb-drift-1 absolute -top-32 left-1/2 h-[420px] w-[620px] -translate-x-1/2 rounded-full"
+        className="orb orb-drift-1 absolute -left-[100px] -top-[100px] h-[400px] w-[400px] rounded-full"
         style={{
           background:
-            "radial-gradient(closest-side, rgba(249,168,212,0.5), transparent)",
-          filter: "blur(90px)",
+            "radial-gradient(circle, #FFD1E3 0%, rgba(255,209,227,0) 70%)",
+          filter: "blur(80px)",
+          opacity: 0.6,
         }}
       />
       <div
-        className="orb orb-drift-2 absolute right-[-140px] top-1/3 h-[380px] w-[380px] rounded-full"
+        className="orb orb-drift-2 absolute -bottom-[150px] -right-[150px] h-[500px] w-[500px] rounded-full"
         style={{
           background:
-            "radial-gradient(closest-side, rgba(244,114,182,0.35), transparent)",
-          filter: "blur(90px)",
+            "radial-gradient(circle, #E0D4FF 0%, rgba(224,212,255,0) 70%)",
+          filter: "blur(80px)",
+          opacity: 0.6,
         }}
       />
       {variant === "full" && (
         <div
-          className="orb orb-drift-3 absolute bottom-[-120px] left-[-120px] h-[340px] w-[340px] rounded-full"
+          className="orb orb-drift-3 absolute left-1/2 top-[40%] h-[300px] w-[300px] -translate-x-1/2 -translate-y-1/2 rounded-full"
           style={{
             background:
-              "radial-gradient(closest-side, rgba(236,72,153,0.22), transparent)",
-            filter: "blur(90px)",
+              "radial-gradient(circle, #FFE4D6 0%, rgba(255,228,214,0) 70%)",
+            filter: "blur(80px)",
+            opacity: 0.6,
           }}
         />
       )}

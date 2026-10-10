@@ -15,7 +15,7 @@ import Footer from "@/components/landing/Footer";
  */
 export default function LandingPage() {
   return (
-    <main className="relative min-h-screen bg-gradient-to-b from-white via-blush-50 to-blush-100">
+    <main className="relative min-h-screen bg-[#FDFBFB]">
       <Navbar />
       <Hero />
       <ChainsBar />

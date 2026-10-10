@@ -13,64 +13,93 @@ const TOKENS = [
   { sym: "MATIC", chain: "Polygon", val: "$3,492.62", change: "+1.2%" },
 ];
 
-/** Glass dashboard mockup preview (visual only — live data in Phase 6). */
+function CheckIcon() {
+  return (
+    <svg
+      width="10"
+      height="10"
+      viewBox="0 0 24 24"
+      fill="none"
+      stroke="currentColor"
+      strokeWidth={3}
+      strokeLinecap="round"
+      strokeLinejoin="round"
+      aria-hidden
+    >
+      <polyline points="20 6 9 17 4 12" />
+    </svg>
+  );
+}
+
+/** Glass dashboard mockup — pixel-faithful to the approved mockup card. */
 function DashboardMockup() {
   return (
     <motion.div
-      initial={{ opacity: 0, y: 20, scale: 0.98 }}
-      animate={{ opacity: 1, y: 0, scale: 1 }}
-      transition={{ duration: 0.7, delay: 0.35, ease: [0.22, 1, 0.36, 1] }}
+      initial={{ opacity: 0, y: 20 }}
+      animate={{ opacity: 1, y: 0 }}
+      transition={{ duration: 0.8, ease: "easeOut", delay: 0.35 }}
       className="relative w-full"
     >
-      <div
-        aria-hidden
-        className="brand-gradient-bg absolute -inset-x-4 -top-4 bottom-0 rounded-[28px] opacity-25 blur-2xl"
-      />
-      <GlassCard strong className="relative overflow-hidden p-5 sm:p-6">
-        <div className="flex items-start justify-between gap-3">
-          <div>
-            <p className="text-xs uppercase tracking-widest text-zinc-500">
-              Total balance
-            </p>
-            <p className="mt-1 text-3xl font-semibold tracking-tight text-zinc-900 sm:text-4xl">
-              $24,806<span className="text-zinc-400">.19</span>
-            </p>
-          </div>
-          <span className="brand-gradient-bg mt-1 shrink-0 rounded-full px-3 py-1 text-xs font-semibold text-white">
-            <span aria-hidden>●</span> Voice verified
+      <GlassCard
+        strong
+        className="relative flex flex-col gap-5 overflow-hidden p-6"
+      >
+        <div className="flex items-center justify-between">
+          <span className="text-[11px] font-semibold uppercase tracking-[0.05em] text-[#9CA3AF]">
+            Total Balance
+          </span>
+          <span className="brand-gradient-bg inline-flex items-center gap-1.5 rounded-full px-3 py-1 text-[11px] font-semibold text-white shadow-brand">
+            <CheckIcon />
+            Voice verified
           </span>
         </div>
 
-        <div className="mt-5 grid grid-cols-3 gap-2.5">
+        <p className="font-display text-4xl font-extrabold tracking-[-0.02em] text-[#111827]">
+          $24,806
+          <span className="ml-0.5 text-2xl font-semibold text-[#9CA3AF]">
+            .19
+          </span>
+        </p>
+
+        <div className="grid grid-cols-3 gap-2.5">
           {["Send", "Receive", "Swap"].map((a) => (
-            <div
+            <button
               key={a}
-              className="glass rounded-2xl px-3 py-2.5 text-center text-sm font-semibold text-zinc-800"
+              type="button"
+              tabIndex={-1}
+              aria-hidden
+              className="cursor-default rounded-[14px] bg-white px-3 py-3 text-[13px] font-semibold text-[#111827] shadow-[0_2px_8px_rgba(0,0,0,0.04)]"
             >
               {a}
-            </div>
+            </button>
           ))}
         </div>
 
-        <div className="mt-4 space-y-2.5">
+        <div className="flex flex-col">
           {TOKENS.map((r) => (
             <div
               key={r.chain}
-              className="flex items-center justify-between rounded-2xl bg-pink-500/[0.05] px-4 py-3 text-sm"
+              className="flex items-center justify-between border-t border-black/[0.05] py-4 first:border-t-0 first:pt-1 last:pb-0"
             >
               <span className="flex items-center gap-3">
-                <span className="brand-gradient-bg flex h-8 w-8 items-center justify-center rounded-full text-xs font-semibold text-white">
+                <span className="brand-gradient-bg flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white">
                   {r.sym[0]}
                 </span>
                 <span>
-                  <span className="block font-semibold leading-tight text-zinc-900">{r.sym}</span>
-                  <span className="block text-xs text-zinc-500">{r.chain}</span>
+                  <span className="block text-sm font-semibold text-[#111827]">
+                    {r.sym}
+                  </span>
+                  <span className="block text-[11px] font-semibold text-[#10B981]">
+                    {r.change}
+                  </span>
                 </span>
               </span>
               <span className="text-right">
-                <span className="block font-semibold text-zinc-900">{r.val}</span>
-                <span className="block text-xs font-medium text-emerald-600">
-                  {r.change}
+                <span className="block text-sm font-bold text-[#111827]">
+                  {r.val}
+                </span>
+                <span className="block text-[11px] text-[#9CA3AF]">
+                  {r.chain}
                 </span>
               </span>
             </div>
@@ -81,20 +110,23 @@ function DashboardMockup() {
   );
 }
 
-/** Hero: asymmetric — text left (60%), glass mockup right (40%). */
+/** Hero — mobile-first app feel (max-w 480px centered), mockup spec. */
 export default function Hero() {
   return (
-    <section id="top" className="relative overflow-hidden px-4 pb-16 pt-32 sm:pt-40">
+    <section
+      id="top"
+      className="relative overflow-hidden px-6 pb-16 pt-32 sm:pt-36"
+    >
       <OrbBackground />
-      <div className="mx-auto grid max-w-6xl items-center gap-12 lg:grid-cols-[60%_40%]">
-        <div className="text-center lg:text-left">
+      <div className="mx-auto flex w-full max-w-[480px] flex-col items-center gap-8 text-center">
+        <div>
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.6 }}
-            className="glass mb-6 inline-flex items-center gap-2 rounded-full px-4 py-1.5 text-xs text-zinc-600"
+            className="mb-5 inline-flex items-center gap-2 rounded-full border border-black/[0.05] bg-white/80 px-4 py-1.5 text-xs font-medium text-[#6B7280] shadow-[0_2px_10px_rgba(0,0,0,0.02)]"
           >
-            <span className="brand-gradient-bg h-2 w-2 rounded-full" />
+            <span className="pulse-dot h-1.5 w-1.5 rounded-full bg-[#FF3B8D] shadow-[0_0_8px_#FF3B8D]" />
             AI voice verification · ETH · Base · Polygon
           </motion.div>
 
@@ -102,37 +134,39 @@ export default function Hero() {
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.1 }}
-            className="text-5xl font-semibold leading-[1.05] tracking-tight text-zinc-900 sm:text-6xl lg:text-7xl"
+            className="font-display text-[44px] font-extrabold leading-[1.1] tracking-[-0.03em] text-[#111827] sm:text-6xl"
           >
-            The wallet that <GradientText>knows it&apos;s you.</GradientText>
+            The wallet that
+            <br />
+            <GradientText>knows it&apos;s you.</GradientText>
           </motion.h1>
 
           <motion.p
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.7, delay: 0.2 }}
-            className="mx-auto mt-5 max-w-xl text-base text-zinc-600 sm:text-lg lg:mx-0"
+            className="mx-auto mt-5 max-w-[90%] text-[15px] leading-relaxed text-[#6B7280]"
           >
             Sign in with Google or Privy, pass a 15-second AI voice and
             liveness check, then see Ethereum, Base and Polygon in one glass
             dashboard.
           </motion.p>
+        </div>
 
-          <motion.div
-            id="get-started"
-            initial={{ opacity: 0, y: 20 }}
-            animate={{ opacity: 1, y: 0 }}
-            transition={{ duration: 0.7, delay: 0.3 }}
-            className="mt-8 flex scroll-mt-24 flex-col items-center gap-3 sm:flex-row sm:justify-center lg:justify-start"
-          >
-            <GoogleLoginButton className="w-full sm:w-auto" />
-            <PrivyLoginButton className="w-full sm:w-auto" />
-          </motion.div>
-          <p className="mt-3 text-xs text-zinc-500">
+        <motion.div
+          id="get-started"
+          initial={{ opacity: 0, y: 20 }}
+          animate={{ opacity: 1, y: 0 }}
+          transition={{ duration: 0.7, delay: 0.3 }}
+          className="flex w-full scroll-mt-24 flex-col gap-3"
+        >
+          <GoogleLoginButton />
+          <PrivyLoginButton />
+          <p className="-mt-1 text-[11px] leading-relaxed text-[#9CA3AF]">
             Google creates an embedded wallet instantly · Privy offers email,
             phone &amp; passkey
           </p>
-        </div>
+        </motion.div>
 
         <DashboardMockup />
       </div>

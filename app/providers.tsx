@@ -29,7 +29,7 @@ export default function Providers({ children }: { children: React.ReactNode }) {
         loginMethods: ["google", "email", "sms"],
         appearance: {
           theme: "light",
-          accentColor: "#ec4899",
+          accentColor: "#FF3B8D",
         },
         embeddedWallets: {
           createOnLogin: "all-users",

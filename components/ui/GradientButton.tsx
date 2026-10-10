@@ -5,8 +5,9 @@ type GradientButtonProps = React.ButtonHTMLAttributes<HTMLButtonElement> & {
 };
 
 /**
- * Primary CTA: pink gradient pill, white text. Ghost: light-glass pill
- * with a soft pink hover glow.
+ * Mockup-matched CTAs.
+ * Brand: pink gradient, 16px radius, white text, pink glow that lifts on hover.
+ * Ghost ("Continue with Privy"): white card, hairline border, subtle lift.
  */
 export default function GradientButton({
   variant = "brand",
@@ -17,14 +18,14 @@ export default function GradientButton({
   return (
     <button
       className={cn(
-        "inline-flex items-center justify-center gap-2.5 rounded-full px-6 py-3.5",
-        "text-sm font-semibold transition-all duration-200",
-        "focus:outline-none focus-visible:ring-2 focus-visible:ring-pink-400/70",
+        "inline-flex w-full items-center justify-center gap-2.5 rounded-2xl px-6 py-4",
+        "text-base font-semibold transition-all duration-300",
+        "focus:outline-none focus-visible:ring-2 focus-visible:ring-[#FF3B8D]/60",
         "disabled:cursor-not-allowed disabled:opacity-50",
         variant === "brand" &&
-          "brand-gradient-bg text-white shadow-brand hover:shadow-[0_10px_48px_-8px_rgba(236,72,153,0.75)] hover:brightness-105 active:scale-[0.98]",
+          "brand-gradient-bg text-white shadow-brand hover:-translate-y-0.5 hover:shadow-brand-lg hover:brightness-105 active:translate-y-0 active:scale-[0.99]",
         variant === "ghost" &&
-          "glass text-zinc-900 hover:border-pink-400/50 hover:shadow-[0_8px_40px_-10px_rgba(236,72,153,0.45)] active:scale-[0.98]",
+          "border border-black/[0.05] bg-white text-[#111827] shadow-[0_4px_12px_rgba(0,0,0,0.03)] hover:-translate-y-0.5 hover:bg-[#F9FAFB] hover:shadow-[0_8px_20px_rgba(0,0,0,0.06)] active:translate-y-0",
         className
       )}
       {...rest}
