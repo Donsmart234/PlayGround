@@ -1,175 +1,125 @@
 import { NextResponse } from "next/server";
-import { getPrivyClient, extractBearerToken } from "@/lib/server/privy-server";
+import { randomUUID } from "node:crypto";
+import {
+  verifyGoogleIdToken,
+  signSession,
+  buildSessionCookie,
+} from "@/lib/server/google-auth";
 import { getSupabaseAdmin } from "@/lib/server/supabase-admin";
-import { getServerEnv } from "@/lib/server/env";
 
 export const runtime = "nodejs";
 export const dynamic = "force-dynamic";
 
-type LinkedAccount = {
-  type?: string;
-  address?: string;
-  walletClientType?: string;
-  email?: string;
-  address_email?: string;
-  name?: string;
-};
-
-function pickGoogleEmail(accounts: LinkedAccount[] = []): string | null {
-  const google = accounts.find(
-    (a) => a.type === "google_oauth" || a.type === "google"
-  );
-  const email =
-    google?.email ||
-    google?.address_email ||
-    accounts.find((a) => a.type === "email")?.address ||
-    accounts.find((a) => a.type === "email")?.email ||
-    null;
-  return typeof email === "string" ? email : null;
-}
-
-function pickWallets(accounts: LinkedAccount[] = []) {
-  const wallets = accounts.filter((a) => a.type === "wallet" && a.address);
-  const embedded =
-    wallets.find((w) => w.walletClientType === "privy")?.address ?? null;
-  const external =
-    wallets.find((w) => w.walletClientType !== "privy")?.address ?? null;
-  return { embedded, external };
-}
-
 /**
- * POST /api/auth/google — Google login backend.
+ * POST /api/auth/google — standalone Google login (NO Privy).
  *
- * Frontend (Privy Google OAuth) sends its access token:
- *   Authorization: Bearer <privy-access-token>
- *   Body (optional hints): { displayName, embeddedWallet, externalWallet }
+ * Frontend (Google Identity Services button) sends:
+ *   { "credential": "<Google ID token>" }
  *
- * Backend verifies the token with Privy's API, pulls the canonical Google
- * email + wallets via getUser(), upserts public.users in Supabase, and
- * returns the profile + next route. Dashboard stays locked until an
- * external wallet is linked, so next is always /connect-wallet here.
+ * Backend verifies the ID token with Google (signature + aud + iss + exp),
+ * upserts public.users keyed by google_sub with login_method='google',
+ * seals a session JWT into an httpOnly cookie, and returns the profile.
+ * Google users hold NO wallet here — next is always /connect-wallet.
  */
 export async function POST(req: Request) {
-  const privy = getPrivyClient();
-  if (!privy) {
-    const { missing } = getServerEnv();
+  let credential: string | null = null;
+  try {
+    const body = await req.json();
+    credential =
+      typeof body?.credential === "string" && body.credential.length > 0
+        ? body.credential
+        : null;
+  } catch {
+    credential = null;
+  }
+  if (!credential) {
+    return NextResponse.json(
+      { ok: false, error: "Missing Google credential. Sign in again." },
+      { status: 400 }
+    );
+  }
+
+  // 1. Verify with Google — the only source of truth for identity.
+  let profile;
+  try {
+    profile = await verifyGoogleIdToken(credential);
+  } catch (e) {
+    const message =
+      e instanceof Error && e.message.includes("GOOGLE_CLIENT_ID")
+        ? "Google login is not configured yet. Set GOOGLE_CLIENT_ID (see .env.example: Google Cloud → APIs & Services → Credentials → OAuth client, Web type) and restart."
+        : "Invalid or expired Google credential. Sign in again.";
+    const status =
+      e instanceof Error && e.message.includes("GOOGLE_CLIENT_ID") ? 503 : 401;
+    return NextResponse.json({ ok: false, error: message }, { status });
+  }
+
+  // 2. Upsert into the SHARED users table (login_method='google').
+  const supabase = getSupabaseAdmin();
+  let record: unknown = null;
+  let dbPersisted = false;
+  let warning: string | undefined;
+  if (!supabase) {
+    warning =
+      "Verified with Google, but Supabase isn't configured — set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY and run supabase/schema.sql to persist users.";
+  } else {
+    const { data, error } = await supabase
+      .from("users")
+      .upsert(
+        {
+          login_method: "google",
+          google_sub: profile.sub,
+          google_email: profile.email,
+          email_verified: profile.emailVerified,
+          display_name: profile.name ?? profile.email.split("@")[0],
+          avatar_url: profile.picture,
+        },
+        { onConflict: "google_sub" }
+      )
+      .select()
+      .single();
+    if (error) {
+      warning = `Verified with Google, but Supabase upsert failed: ${error.message}. Did you run supabase/schema.sql (shared-model migration)?`;
+    } else {
+      record = data;
+      dbPersisted = true;
+    }
+  }
+
+  // 3. Seal the session (top-security: HS256 JWT, httpOnly + Secure + SameSite=Lax).
+  let cookie: string;
+  try {
+    const token = signSession({
+      sub: profile.sub,
+      email: profile.email,
+      loginMethod: "google",
+      sid: randomUUID(),
+    });
+    cookie = buildSessionCookie(token);
+  } catch {
     return NextResponse.json(
       {
         ok: false,
-        error: "Google login backend is not configured yet.",
-        missing,
-        setup: [
-          "1. dashboard.privy.io → your app → copy App ID → PRIVY_APP_ID",
-          "2. Same dashboard → Login Methods → Socials → toggle Google ON",
-          "3. Dashboard → Settings → Basics → copy App Secret → PRIVY_APP_SECRET",
-          "4. Restart the dev server.",
-        ],
+        error:
+          "SESSION_SECRET is missing or too short (min 32 random chars). Generate one with: openssl rand -base64 48",
       },
       { status: 503 }
     );
   }
 
-  const token = extractBearerToken(req);
-  if (!token) {
-    return NextResponse.json(
-      { ok: false, error: "Missing Authorization: Bearer <privy-access-token>." },
-      { status: 401 }
-    );
-  }
-
-  // 1. Verify — proves the user really completed Google OAuth for OUR app.
-  let userId: string;
-  try {
-    const claims = await privy.verifyAuthToken(token);
-    userId = claims.userId;
-  } catch {
-    return NextResponse.json(
-      { ok: false, error: "Invalid or expired Privy token. Sign in again." },
-      { status: 401 }
-    );
-  }
-
-  // 2. Canonical profile from Privy (don't trust client-supplied email).
-  let googleEmail: string | null = null;
-  let serverEmbedded: string | null = null;
-  let serverExternal: string | null = null;
-  try {
-    const privyUser = await privy.getUser(userId);
-    const accounts = (privyUser?.linkedAccounts ?? []) as LinkedAccount[];
-    googleEmail = pickGoogleEmail(accounts);
-    const wallets = pickWallets(accounts);
-    serverEmbedded = wallets.embedded;
-    serverExternal = wallets.external;
-  } catch {
-    // Non-fatal: token is already verified, continue with client hints.
-  }
-
-  // 3. Client hints (wallet addresses the SDK already knows).
-  let hint: { displayName?: string; embeddedWallet?: string; externalWallet?: string } = {};
-  try {
-    hint = await req.json();
-  } catch {
-    hint = {};
-  }
-
-  const profile = {
-    did: userId,
-    email: googleEmail,
-    displayName:
-      typeof hint.displayName === "string" && hint.displayName.trim()
-        ? hint.displayName.trim().slice(0, 120)
-        : googleEmail?.split("@")[0] ?? null,
-    embeddedWallet:
-      serverEmbedded ||
-      (typeof hint.embeddedWallet === "string" ? hint.embeddedWallet : null),
-    externalWallet:
-      serverExternal ||
-      (typeof hint.externalWallet === "string" ? hint.externalWallet : null),
-  };
-
-  // 4. Upsert into Supabase (graceful when DB isn't configured yet).
-  const supabase = getSupabaseAdmin();
-  if (!supabase) {
-    return NextResponse.json({
-      ok: true,
-      user: profile,
-      next: "/connect-wallet",
-      dbPersisted: false,
-      warning:
-        "Verified with Privy, but Supabase isn't configured — set SUPABASE_URL + SUPABASE_SERVICE_ROLE_KEY and run supabase/schema.sql to persist users.",
-    });
-  }
-
-  const { data, error } = await supabase
-    .from("users")
-    .upsert(
-      {
-        privy_did: profile.did,
-        google_email: profile.email,
-        display_name: profile.displayName,
-        embedded_wallet: profile.embeddedWallet,
-        external_wallet: profile.externalWallet,
-      },
-      { onConflict: "privy_did" }
-    )
-    .select()
-    .single();
-
-  if (error) {
-    return NextResponse.json({
-      ok: true,
-      user: profile,
-      next: "/connect-wallet",
-      dbPersisted: false,
-      warning: `Verified with Privy, but Supabase upsert failed: ${error.message}. Did you run supabase/schema.sql?`,
-    });
-  }
-
-  return NextResponse.json({
+  const res = NextResponse.json({
     ok: true,
-    user: profile,
-    record: data,
+    user: {
+      loginMethod: "google",
+      sub: profile.sub,
+      email: profile.email,
+      displayName: profile.name ?? profile.email.split("@")[0],
+      avatarUrl: profile.picture,
+    },
+    record,
     next: "/connect-wallet",
-    dbPersisted: true,
+    dbPersisted,
+    ...(warning ? { warning } : {}),
   });
+  res.headers.set("Set-Cookie", cookie);
+  return res;
 }

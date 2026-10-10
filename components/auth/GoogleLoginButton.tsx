@@ -1,82 +1,175 @@
 "use client";
 
+import { useEffect, useRef, useState } from "react";
 import { useRouter } from "next/navigation";
-import { useLogin, usePrivy } from "@privy-io/react-auth";
 import GradientButton from "@/components/ui/GradientButton";
-import { hasPrivyAppId, missingPrivyAlert } from "@/lib/privy-safe";
-import { extractWalletHints, syncGoogleLoginToBackend } from "@/lib/auth-sync";
-
-function GoogleIcon() {
-  return (
-    <svg width="18" height="18" viewBox="0 0 24 24" aria-hidden>
-      <path
-        fill="#EA4335"
-        d="M12 10.2v3.9h5.4c-.24 1.2-1.56 3.5-5.4 3.5a5.9 5.9 0 0 1 0-11.8c1.5 0 2.5.63 3.1 1.17l2.4-2.3C15.9 3.3 14.1 2.5 12 2.5a9.5 9.5 0 0 0 0 19c5.5 0 9.1-3.9 9.1-9.3 0-.62-.07-1.1-.15-1.6H12z"
-      />
-    </svg>
-  );
-}
 
 type Props = {
   label?: string;
   className?: string;
 };
 
+declare global {
+  interface Window {
+    google?: {
+      accounts?: {
+        id?: {
+          initialize: (opts: {
+            client_id: string;
+            callback: (resp: { credential?: string }) => void;
+            auto_select?: boolean;
+            cancel_on_tap_outside?: boolean;
+          }) => void;
+          renderButton: (
+            el: HTMLElement,
+            opts: Record<string, unknown>
+          ) => void;
+          prompt: () => void;
+        };
+      };
+    };
+  }
+}
+
+const GIS_SRC = "https://accounts.google.com/gsi/client";
+const clientId = () => process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID || "";
+
+function loadGis(): Promise<boolean> {
+  if (typeof window === "undefined") return Promise.resolve(false);
+  if (window.google?.accounts?.id) return Promise.resolve(true);
+  return new Promise((resolve) => {
+    const existing = document.querySelector(`script[src="${GIS_SRC}"]`);
+    if (existing) {
+      existing.addEventListener("load", () => resolve(true), { once: true });
+      existing.addEventListener("error", () => resolve(false), { once: true });
+      return;
+    }
+    const s = document.createElement("script");
+    s.src = GIS_SRC;
+    s.async = true;
+    s.defer = true;
+    s.onload = () => resolve(true);
+    s.onerror = () => resolve(false);
+    document.head.appendChild(s);
+  });
+}
+
 /**
- * BUTTON 1 — "Continue with Google".
- * Calls Privy's Google OAuth directly, creates an embedded EVM wallet
- * automatically (createOnLogin: all-users), then routes to /connect-wallet.
+ * BUTTON 1 — "Continue with Google" (STANDALONE — no Privy).
+ * Official Google Identity Services button → ID token → POST to our
+ * backend (/api/auth/google) → verified + upserted + session cookie →
+ * route to /connect-wallet (no wallet is created here).
+ * Privy login is BUTTON 2 and never touches this path.
  */
 export default function GoogleLoginButton({
   label = "Continue with Google",
   className,
 }: Props) {
-  // No Privy App ID (or SSR prerender): render a static button that explains
-  // setup — useLogin() is never called without a PrivyProvider ancestor.
-  if (!hasPrivyAppId()) {
+  const router = useRouter();
+  const btnRef = useRef<HTMLDivElement>(null);
+  const [status, setStatus] = useState<"idle" | "loading" | "ready" | "error" | "busy">("idle");
+  const [error, setError] = useState<string | null>(null);
+
+  useEffect(() => {
+    if (!clientId()) return; // setup hint rendered below
+    let cancelled = false;
+    setStatus("loading");
+    loadGis().then((ok) => {
+      if (cancelled || !ok || !window.google?.accounts?.id || !btnRef.current) {
+        if (!cancelled) {
+          setStatus("error");
+          setError("Could not load Google sign-in. Check your connection and retry.");
+        }
+        return;
+      }
+      try {
+        window.google.accounts.id.initialize({
+          client_id: clientId(),
+          callback: async (resp) => {
+            if (!resp?.credential) {
+              setError("Google sign-in was cancelled. Try again.");
+              return;
+            }
+            setStatus("busy");
+            setError(null);
+            try {
+              const res = await fetch("/api/auth/google", {
+                method: "POST",
+                headers: { "Content-Type": "application/json" },
+                body: JSON.stringify({ credential: resp.credential }),
+              });
+              const data = await res.json().catch(() => null);
+              if (!res.ok || !data?.ok) {
+                setStatus("ready");
+                setError(data?.error ?? "Google sign-in failed. Try again.");
+                return;
+              }
+              if (data.warning) console.warn("[google-login]", data.warning);
+              router.push(data.next ?? "/connect-wallet");
+            } catch {
+              setStatus("ready");
+              setError("Network error talking to the login backend. Try again.");
+            }
+          },
+          auto_select: false,
+          cancel_on_tap_outside: true,
+        });
+        window.google.accounts.id.renderButton(btnRef.current, {
+          type: "standard",
+          theme: "outline",
+          size: "large",
+          shape: "pill",
+          text: "continue_with",
+          logo_alignment: "left",
+          width: 280,
+        });
+        setStatus("ready");
+      } catch {
+        setStatus("error");
+        setError("Could not start Google sign-in. Retry.");
+      }
+    });
+    return () => {
+      cancelled = true;
+    };
+  }, [router]);
+
+  // No Client ID yet → setup hint (never crashes, never calls Google).
+  if (!clientId()) {
     return (
-      <GradientButton onClick={missingPrivyAlert} className={className} aria-label={label}>
-        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
-          <GoogleIcon />
+      <GradientButton
+        className={className}
+        aria-label={label}
+        onClick={() =>
+          alert(
+            "Google login isn't configured yet.\n\n1. console.cloud.google.com → OAuth client (Web) — see .env.example\n2. Set NEXT_PUBLIC_GOOGLE_CLIENT_ID + GOOGLE_CLIENT_ID + SESSION_SECRET\n3. Restart the dev server."
+          )
+        }
+      >
+        <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white text-sm font-bold text-[#EA4335]">
+          G
         </span>
         {label}
       </GradientButton>
     );
   }
-  return <WiredGoogleButton label={label} className={className} />;
-}
-
-function WiredGoogleButton({ label, className }: Props) {
-  const router = useRouter();
-  const { ready, getAccessToken } = usePrivy();
-  const { login } = useLogin({
-    onComplete: async (loginUser) => {
-      // Verify + provision via our backend, then enter the wallet gate.
-      // Navigation is never blocked: sync failures only log a warning.
-      try {
-        const token = await getAccessToken();
-        const { next } = await syncGoogleLoginToBackend(
-          token,
-          extractWalletHints(loginUser)
-        );
-        router.push(next);
-      } catch {
-        router.push("/connect-wallet");
-      }
-    },
-  });
 
   return (
-    <GradientButton
-      onClick={() => login({ loginMethods: ["google"] })}
-      disabled={!ready}
-      className={className}
-      aria-label={label}
-    >
-      <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
-        <GoogleIcon />
+    <span className={className} style={{ display: "inline-flex", flexDirection: "column", gap: 8 }}>
+      <span className="glass inline-flex items-center justify-center rounded-full px-2 py-2">
+        <div ref={btnRef} aria-label={label} style={{ minHeight: 40, minWidth: 240 }} />
       </span>
-      {label}
-    </GradientButton>
+      {status === "loading" && (
+        <span className="text-center text-xs text-zinc-500">Loading Google sign-in…</span>
+      )}
+      {status === "busy" && (
+        <span className="text-center text-xs text-zinc-500">Verifying with Google…</span>
+      )}
+      {error && (
+        <span role="alert" className="text-center text-xs font-semibold text-red-600">
+          {error}
+        </span>
+      )}
+    </span>
   );
 }

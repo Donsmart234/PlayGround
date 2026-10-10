@@ -39,9 +39,10 @@ export function extractWalletHints(user: unknown): BackendSyncHints {
 }
 
 /**
- * POST the Privy access token to our Google-login backend so it can verify
- * + upsert the user row. Never blocks navigation: on any failure the caller
- * still routes to /connect-wallet (backend is provisioning, not gating).
+ * POST the Privy access token to the PRIVY backend (/api/auth/privy) so it
+ * can verify + upsert the user row with login_method='privy'.
+ * Google login never touches this — it uses POST /api/auth/google instead.
+ * Never blocks navigation: failures only warn, caller still routes onward.
  */
 export async function syncGoogleLoginToBackend(
   accessToken: string | null,
@@ -52,7 +53,7 @@ export async function syncGoogleLoginToBackend(
     return { ok: false, next: "/connect-wallet" };
   }
   try {
-    const res = await fetch("/api/auth/google", {
+    const res = await fetch("/api/auth/privy", {
       method: "POST",
       headers: {
         "Content-Type": "application/json",
