@@ -22,6 +22,8 @@
   "homepage": "https://github.com/Donsmart234/PlayGround#readme",
   "dependencies": {
     "@privy-io/react-auth": "^1.91.0",
+    "@privy-io/server-auth": "^1.32.3",
+    "@supabase/supabase-js": "^2.47.0",
     "clsx": "^2.1.1",
     "framer-motion": "^11.18.2",
     "next": "^14.2.5",

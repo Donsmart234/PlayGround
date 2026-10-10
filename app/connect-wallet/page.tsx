@@ -22,7 +22,7 @@ function truncate(addr: string) {
  * Requires Privy login (redirects to landing if not).
  * Links ONE external wallet (MetaMask / Coinbase / WalletConnect) via
  * Privy's modal. Dashboard stays locked until this step is done.
- * Google direct login stays parked behind its flag until approved.
+ * Google login arrives here via POST /api/auth/google (verified + provisioned).
  */
 export default function ConnectWalletPage() {
   if (!hasPrivyAppId()) {

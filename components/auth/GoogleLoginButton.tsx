@@ -4,6 +4,7 @@ import { useRouter } from "next/navigation";
 import { useLogin, usePrivy } from "@privy-io/react-auth";
 import GradientButton from "@/components/ui/GradientButton";
 import { hasPrivyAppId, missingPrivyAlert } from "@/lib/privy-safe";
+import { extractWalletHints, syncGoogleLoginToBackend } from "@/lib/auth-sync";
 
 function GoogleIcon() {
   return (
@@ -47,8 +48,23 @@ export default function GoogleLoginButton({
 
 function WiredGoogleButton({ label, className }: Props) {
   const router = useRouter();
-  const { ready } = usePrivy();
-  const { login } = useLogin({ onComplete: () => router.push("/connect-wallet") });
+  const { ready, getAccessToken } = usePrivy();
+  const { login } = useLogin({
+    onComplete: async (loginUser) => {
+      // Verify + provision via our backend, then enter the wallet gate.
+      // Navigation is never blocked: sync failures only log a warning.
+      try {
+        const token = await getAccessToken();
+        const { next } = await syncGoogleLoginToBackend(
+          token,
+          extractWalletHints(loginUser)
+        );
+        router.push(next);
+      } catch {
+        router.push("/connect-wallet");
+      }
+    },
+  });
 
   return (
     <GradientButton
