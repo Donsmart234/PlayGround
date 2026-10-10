@@ -1,9 +1,10 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter } from "next/navigation";
-import { useLogin, usePrivy } from "@privy-io/react-auth";
 import GradientButton from "@/components/ui/GradientButton";
-import { hasPrivyAppId, missingPrivyAlert } from "@/lib/privy-safe";
+import { useGoogleAuth } from "@/lib/google-auth";
+import { missingGoogleAlert } from "@/lib/google-safe";
 
 function GoogleIcon() {
   // Full 4-color "G" from the approved mockup (not a single-color glyph).
@@ -35,38 +36,54 @@ type Props = {
 };
 
 /**
- * BUTTON 1 — "Continue with Google".
- * Calls Privy's Google OAuth directly, creates an embedded EVM wallet
- * automatically (createOnLogin: all-users), then routes to /connect-wallet.
+ * BUTTON 1 — "Continue with Google" (STANDALONE, zero Privy dependency).
+ * Google Identity Services popup → local session → routes to /connect-wallet,
+ * where the user connects a 3rd-party wallet directly via wagmi.
  */
 export default function GoogleLoginButton({
   label = "Continue with Google",
   className,
 }: Props) {
-  // No Privy App ID (or SSR prerender): render a static button that explains
-  // setup — useLogin() is never called without a PrivyProvider ancestor.
-  if (!hasPrivyAppId()) {
+  const router = useRouter();
+  const { status, user, configured, signIn, error } = useGoogleAuth();
+
+  // Already signed in with Google → offer a direct continue.
+  // (No auto-redirect: landing visitors shouldn't get yanked away.)
+
+  useEffect(() => {
+    if (error && error !== "missing-config") {
+      alert(error);
+    }
+  }, [error]);
+
+  if (status === "authenticated" && user) {
+    const first = (user.name || user.email).split(" ")[0];
     return (
-      <GradientButton onClick={missingPrivyAlert} className={className} aria-label={label}>
+      <GradientButton
+        onClick={() => router.push("/connect-wallet")}
+        className={className}
+        aria-label={`Continue as ${user.name || user.email}`}
+      >
         <span className="flex h-6 w-6 items-center justify-center rounded-full bg-white">
           <GoogleIcon />
         </span>
-        {label}
+        Continue as {first}
       </GradientButton>
     );
   }
-  return <WiredGoogleButton label={label} className={className} />;
-}
 
-function WiredGoogleButton({ label, className }: Props) {
-  const router = useRouter();
-  const { ready } = usePrivy();
-  const { login } = useLogin({ onComplete: () => router.push("/connect-wallet") });
+  const handleClick = () => {
+    if (!configured) {
+      missingGoogleAlert();
+      return;
+    }
+    signIn();
+  };
 
   return (
     <GradientButton
-      onClick={() => login({ loginMethods: ["google"] })}
-      disabled={!ready}
+      onClick={handleClick}
+      disabled={status === "loading"}
       className={className}
       aria-label={label}
     >

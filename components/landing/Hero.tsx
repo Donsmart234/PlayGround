@@ -5,12 +5,13 @@ import GoogleLoginButton from "@/components/auth/GoogleLoginButton";
 import PrivyLoginButton from "@/components/auth/PrivyLoginButton";
 import GradientText from "@/components/ui/GradientText";
 import GlassCard from "@/components/ui/GlassCard";
+import ChainLogo from "@/components/ui/ChainLogo";
 import OrbBackground from "@/components/ui/OrbBackground";
 
 const TOKENS = [
-  { sym: "ETH", chain: "Ethereum", val: "$12,402.55", change: "+2.4%" },
-  { sym: "ETH", chain: "Base", val: "$8,911.02", change: "+3.1%" },
-  { sym: "MATIC", chain: "Polygon", val: "$3,492.62", change: "+1.2%" },
+  { sym: "ETH", chain: "Ethereum" as const, logo: "ethereum" as const, val: "$12,402.55", change: "+2.4%" },
+  { sym: "ETH", chain: "Base" as const, logo: "base" as const, val: "$8,911.02", change: "+3.1%" },
+  { sym: "MATIC", chain: "Polygon" as const, logo: "polygon" as const, val: "$3,492.62", change: "+1.2%" },
 ];
 
 function CheckIcon() {
@@ -82,9 +83,7 @@ function DashboardMockup() {
               className="flex items-center justify-between border-t border-black/[0.05] py-4 first:border-t-0 first:pt-1 last:pb-0"
             >
               <span className="flex items-center gap-3">
-                <span className="brand-gradient-bg flex h-9 w-9 items-center justify-center rounded-full text-xs font-bold text-white">
-                  {r.sym[0]}
-                </span>
+                <ChainLogo chain={r.logo} size={36} />
                 <span>
                   <span className="block text-sm font-semibold text-[#111827]">
                     {r.sym}

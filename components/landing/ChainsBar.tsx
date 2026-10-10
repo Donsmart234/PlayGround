@@ -1,9 +1,12 @@
+import ChainLogo from "@/components/ui/ChainLogo";
 import Reveal from "./Reveal";
 
-const CHAINS = [
-  { name: "Ethereum", detail: "Mainnet · Chain ID 1", glyph: "Ξ" },
-  { name: "Base", detail: "Chain ID 8453", glyph: "B" },
-  { name: "Polygon", detail: "Chain ID 137", glyph: "P" },
+type ChainId = "ethereum" | "base" | "polygon";
+
+const CHAINS: { id: ChainId; name: string; detail: string }[] = [
+  { id: "ethereum", name: "Ethereum", detail: "Mainnet · Chain ID 1" },
+  { id: "base", name: "Base", detail: "Chain ID 8453" },
+  { id: "polygon", name: "Polygon", detail: "Chain ID 137" },
 ];
 
 /** 3 — Supported chains bar (Arbitrum + Optimism land in v2). */
@@ -20,9 +23,7 @@ export default function ChainsBar() {
               key={c.name}
               className="glass flex items-center gap-4 rounded-3xl px-5 py-4"
             >
-              <span className="brand-gradient-bg flex h-10 w-10 items-center justify-center rounded-full text-lg font-semibold text-white">
-                {c.glyph}
-              </span>
+              <ChainLogo chain={c.id} size={40} />
               <span>
                 <span className="block text-sm font-bold text-zinc-900">{c.name}</span>
                 <span className="block text-xs text-zinc-500">{c.detail}</span>
